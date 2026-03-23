@@ -104,8 +104,10 @@ All parameters are set via `.env` file or environment variables:
 BASE_URL=https://your-app.com
 
 # Browser
-BROWSER=chrome          # chrome | firefox | webkit
-HEADLESS=true           # true | false
+BROWSER=chromium          # chromium | firefox | webkit
+HEADLESS=true             # true | false
+TRACE=false               # true | false
+SLOW_MO_MS=0              # ms to slow down actions (0 == off)
 
 # Timeouts
 TIMEOUT_MS=30000        # element wait timeout in ms
@@ -116,9 +118,8 @@ LOG_DIR=./artifacts/logs
 
 # Artifacts
 ALLURE_RESULTS_DIR=./artifacts/allure-results
-
-# Reporting
-OWNER=username          # test owner name in Allure report
+ALLURE_REPORTS_DIR=./artifacts/allure-reports
+TRACE_DIR=./artifacts/traces
 ```
 
 > Environment variables take precedence over the `.env` file.
@@ -159,6 +160,16 @@ allure serve ./artifacts/allure-results --host 0.0.0.0 --port 5050
 
 # Or generate a static HTML report
 allure generate ./artifacts/allure-results -o ./artifacts/allure-report --clean
+
+# Or use Make
+# Serve Allure report in browser (random port)
+make allure-serve
+
+# Serve Allure report in browser (localhost:5050)
+make allure-serve-wsl
+
+# Generate static HTML report
+make allure-generate
 ```
 
 On Windows — open `http://localhost:5050` in your browser after running `allure serve`.
