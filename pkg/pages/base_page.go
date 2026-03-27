@@ -12,16 +12,21 @@ import (
 	"github.com/playwright-community/playwright-go"
 )
 
-// BasePage is the base struct for all Page Objects.
+// BasePage is the base struct for all Page Objects providing common navigation and element methods.
 type BasePage struct {
-	Page    playwright.Page
+	// Page is the Playwright page for interactions.
+	Page playwright.Page
+	// BaseURL is the application base URL for relative navigation.
 	BaseURL string
+	// Timeout is the default timeout for waits in milliseconds.
 	Timeout time.Duration
-	Name    string
-	Log     *slog.Logger
+	// Name is the page name for logging and error messages.
+	Name string
+	// Log is the page-scoped logger.
+	Log *slog.Logger
 }
 
-// New creates a new BasePage.
+// New creates a new BasePage with the specified dependencies.
 func New(
 	page playwright.Page,
 	baseURL string,
@@ -39,6 +44,7 @@ func New(
 }
 
 // Navigate opens the page at the given path relative to BaseURL.
+// It waits for network idle before returning, ensuring page resources are loaded.
 func (p *BasePage) Navigate(path string) error {
 	url := p.BaseURL + path
 
@@ -54,7 +60,9 @@ func (p *BasePage) Navigate(path string) error {
 	return nil
 }
 
-// WaitForURL waits until the current URL matches the expected value.
+// WaitForURL waits until the current URL matches the specified pattern.
+// The pattern supports glob patterns (e.g., **/cart**).
+// Returns error on timeout.
 func (p *BasePage) WaitForURL(urlPattern string) error {
 	p.Log.Info("Waiting for URL", "pattern", urlPattern)
 
@@ -68,6 +76,7 @@ func (p *BasePage) WaitForURL(urlPattern string) error {
 }
 
 // GetTitle returns the current page title.
+// Returns empty string if title cannot be retrieved.
 func (p *BasePage) GetTitle() (string, error) {
 	title, err := p.Page.Title()
 	if err != nil {
@@ -77,22 +86,25 @@ func (p *BasePage) GetTitle() (string, error) {
 	return title, nil
 }
 
-// GetCurrentURL returns the current URL.
+// GetCurrentURL returns the absolute URL of the current page.
 func (p *BasePage) GetCurrentURL() string {
 	return p.Page.URL()
 }
 
-// CSS creates an element using a CSS selector.
+// CSS creates an Element with the specified CSS selector and description.
+// The description is used for logging and error messages.
 func (p *BasePage) CSS(selector, description string) *elements.Element {
 	return elements.NewCSS(p.Page, selector, description, p.Timeout, p.Log)
 }
 
-// XPath creates an element using an XPath expression.
+// XPath creates an Element with the specified XPath expression and description.
+// The description is used for logging and error messages.
 func (p *BasePage) XPath(selector, description string) *elements.Element {
 	return elements.NewXPath(p.Page, selector, description, p.Timeout, p.Log)
 }
 
-// WaitForNetworkIdle waits for network to be idle.
+// WaitForNetworkIdle waits for all network requests to complete.
+// Use this after navigation or actions that trigger network activity.
 func (p *BasePage) WaitForNetworkIdle() error {
 	p.Log.Debug("Waiting for network idle")
 
@@ -106,7 +118,8 @@ func (p *BasePage) WaitForNetworkIdle() error {
 	return nil
 }
 
-// ExecuteScript runs JavaScript on the page.
+// ExecuteScript runs the specified JavaScript on the page and returns the result.
+// Use this for complex DOM queries or page interactions not covered by Element methods.
 func (p *BasePage) ExecuteScript(script string, args ...any) (any, error) {
 	result, err := p.Page.Evaluate(script, args...)
 	if err != nil {
@@ -116,7 +129,9 @@ func (p *BasePage) ExecuteScript(script string, args ...any) (any, error) {
 	return result, nil
 }
 
-// ParseInt extracts and converts a string to an integer.
+// ParseInt extracts all digits from the string and converts to integer.
+// Useful for parsing prices with currency symbols (e.g., "1 500 ₽" -> 1500).
+// Returns error if no digits found.
 func (p *BasePage) ParseInt(s string) (int, error) {
 	re := regexp.MustCompile(`[^0-9]`)
 	cleanStr := re.ReplaceAllString(s, "")

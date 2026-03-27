@@ -12,7 +12,10 @@ import (
 	"github.com/lmittmann/tint"
 )
 
-// New creates a new instance of Logger with level from environment variables.
+// New creates a logger with dual output: colored console and timestamped file.
+// Log level is controlled by LOG_LEVEL env var (default: info).
+// File is written to artifacts/logs/session_[timestamp].log.
+// Falls back to console-only if file creation fails.
 func New() *slog.Logger {
 	level := os.Getenv("LOG_LEVEL")
 
@@ -49,10 +52,14 @@ func New() *slog.Logger {
 	return slog.New(handler)
 }
 
+// multiHandler combines multiple slog handlers for dual output.
+// It delegates all operations to each underlying handler sequentially.
 type multiHandler struct {
+	// handlers are the underlying slog handlers to delegate to.
 	handlers []slog.Handler
 }
 
+// Enabled checks if the given log level is enabled by delegating to the first handler.
 func (h *multiHandler) Enabled(
 	ctx context.Context,
 	l slog.Level,
@@ -60,6 +67,8 @@ func (h *multiHandler) Enabled(
 	return h.handlers[0].Enabled(ctx, l)
 }
 
+// Handle passes the log record to all handlers sequentially.
+// Returns the first error encountered.
 func (h *multiHandler) Handle(
 	ctx context.Context,
 	r slog.Record,
@@ -73,6 +82,7 @@ func (h *multiHandler) Handle(
 	return nil
 }
 
+// WithAttrs returns a new handler with attrs applied to all underlying handlers.
 func (h *multiHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
 	newHandlers := make([]slog.Handler, len(h.handlers))
 	for i, handler := range h.handlers {
@@ -81,6 +91,7 @@ func (h *multiHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
 	return &multiHandler{handlers: newHandlers}
 }
 
+// WithGroup returns a new handler with group applied to all underlying handlers.
 func (h *multiHandler) WithGroup(name string) slog.Handler {
 	newHandlers := make([]slog.Handler, len(h.handlers))
 	for i, handler := range h.handlers {
@@ -89,7 +100,8 @@ func (h *multiHandler) WithGroup(name string) slog.Handler {
 	return &multiHandler{handlers: newHandlers}
 }
 
-// ForTest returns a logger with test name context.
+// ForTest creates a test-scoped logger with test name in context.
+// Use this for test-specific logging with automatic test name tagging.
 func ForTest(t *testing.T) *slog.Logger {
 	return New().With("test", t.Name())
 }

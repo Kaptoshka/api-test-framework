@@ -8,24 +8,31 @@ import (
 	"github.com/playwright-community/playwright-go"
 )
 
-// LocatorType defines how to find an element.
+// LocatorType defines the element location strategy.
 type LocatorType string
 
+// Supported locator types.
 const (
-	CSS   LocatorType = "css"
-	XPath LocatorType = "xpath"
+	CSS   LocatorType = "css"   // CSS selector
+	XPath LocatorType = "xpath" // XPath expression
 )
 
-// Element wraps a Playwright locator with explicit waits and logging.
+// Element wraps a Playwright locator with explicit waits and descriptive logging.
+// It provides a fluent API for element interactions with automatic timeout handling.
 type Element struct {
-	page        playwright.Page
-	locator     playwright.Locator
+	// page is the Playwright page for creating child elements.
+	page playwright.Page
+	// locator is the Playwright locator for this element.
+	locator playwright.Locator
+	// description is the human-readable name for logging.
 	description string
-	timeout     time.Duration
-	log         *slog.Logger
+	// timeout is the default wait timeout in milliseconds.
+	timeout time.Duration
+	// log is the element-scoped logger.
+	log *slog.Logger
 }
 
-// NewCSS creates an element using CSS selector.
+// NewCSS creates an Element with the specified CSS selector.
 func NewCSS(
 	page playwright.Page,
 	selector string,
@@ -36,7 +43,7 @@ func NewCSS(
 	return newElement(page, selector, description, CSS, timeout, log)
 }
 
-// NewXPath creates an element using XPath locator.
+// NewXPath creates an Element with the specified XPath expression.
 func NewXPath(
 	page playwright.Page,
 	xpath string,
@@ -47,6 +54,7 @@ func NewXPath(
 	return newElement(page, "xpath="+xpath, description, XPath, timeout, log)
 }
 
+// newElement is the internal constructor that creates an Element with the given locator.
 func newElement(
 	page playwright.Page,
 	selector string,
@@ -66,7 +74,8 @@ func newElement(
 	}
 }
 
-// WaitForVisible explicitly waits until the element is visible.
+// WaitForVisible waits for the element to be visible in the DOM.
+// Returns error on timeout.
 func (e *Element) WaitForVisible() error {
 	e.log.Debug("Waiting for element to be visible", "element", e.description)
 
@@ -80,7 +89,8 @@ func (e *Element) WaitForVisible() error {
 	return nil
 }
 
-// WaitForHidden waits until the element is hidden or detached.
+// WaitForHidden waits for the element to be hidden or detached from DOM.
+// Returns error on timeout.
 func (e *Element) WaitForHidden() error {
 	e.log.Debug("Waiting for element to be hidden", "element", e.description)
 
@@ -94,7 +104,8 @@ func (e *Element) WaitForHidden() error {
 	return nil
 }
 
-// Click clicks the element.
+// Click clicks the element after waiting for it to be actionable.
+// It handles scrolling into view and waits for visibility.
 func (e *Element) Click() error {
 	e.log.Debug("Clicking element", "element", e.description)
 
@@ -107,7 +118,8 @@ func (e *Element) Click() error {
 	return nil
 }
 
-// Fill fills input element with text.
+// Fill clears the input and fills it with the specified text.
+// It does not dispatch key events (use Press for keyboard shortcuts).
 func (e *Element) Fill(text string) error {
 	e.log.Debug("Filling element", "element", e.description, "text", text)
 
@@ -118,7 +130,8 @@ func (e *Element) Fill(text string) error {
 	return nil
 }
 
-// Clear clears an input field.
+// Clear clears the input field content.
+// It waits for the element to be visible before clearing.
 func (e *Element) Clear() error {
 	e.log.Debug("Clearing element", "element", e.description)
 
@@ -133,7 +146,8 @@ func (e *Element) Clear() error {
 	return nil
 }
 
-// GetText returns visible text of the element.
+// GetText returns the visible text content of the element including all children.
+// Returns empty string if the element is detached from DOM.
 func (e *Element) GetText() (string, error) {
 	e.log.Debug("Getting text from element", "element", e.description)
 
@@ -147,7 +161,8 @@ func (e *Element) GetText() (string, error) {
 	return text, nil
 }
 
-// GetAttribute returns the value of an attribute.
+// GetAttribute returns the value of the specified attribute.
+// Returns empty string if the attribute does not exist.
 func (e *Element) GetAttribute(attr string) (string, error) {
 	e.log.Debug(
 		"Getting attribute",
@@ -168,7 +183,8 @@ func (e *Element) GetAttribute(attr string) (string, error) {
 	return value, nil
 }
 
-// IsVisible returns true if element is visible without waiting.
+// IsVisible checks if the element is visible without waiting.
+// Returns false for hidden or detached elements.
 func (e *Element) IsVisible() (bool, error) {
 	visible, err := e.locator.IsVisible()
 	if err != nil {
@@ -178,7 +194,8 @@ func (e *Element) IsVisible() (bool, error) {
 	return visible, nil
 }
 
-// IsEnabled returns true if element is enabled.
+// IsEnabled checks if the element is enabled (not disabled).
+// Returns false for disabled elements.
 func (e *Element) IsEnabled() (bool, error) {
 	enabled, err := e.locator.IsEnabled()
 	if err != nil {
@@ -188,7 +205,8 @@ func (e *Element) IsEnabled() (bool, error) {
 	return enabled, nil
 }
 
-// SelectOption selects an option in a dropdown.
+// SelectOption selects an option in a dropdown by its value attribute.
+// Use this for <select> elements.
 func (e *Element) SelectOption(value string) error {
 	e.log.Debug("Selecting option", "value", value, "element", e.description)
 
@@ -207,7 +225,8 @@ func (e *Element) SelectOption(value string) error {
 	return nil
 }
 
-// Hover hovers over the element.
+// Hover hovers the mouse over the element center.
+// Does not scroll the element into view automatically.
 func (e *Element) Hover() error {
 	e.log.Debug("Hovering over element", "element", e.description)
 
@@ -218,7 +237,8 @@ func (e *Element) Hover() error {
 	return nil
 }
 
-// ScrollIntoView scrolls element into the viewport.
+// ScrollIntoView scrolls the element into the viewport if not already visible.
+// Use this for elements that are hidden below the fold.
 func (e *Element) ScrollIntoView() error {
 	e.log.Debug("Scrolling element into view", "element", e.description)
 
@@ -233,7 +253,8 @@ func (e *Element) ScrollIntoView() error {
 	return nil
 }
 
-// FilterByText filters elements by text.
+// FilterByText returns a new Element filtered to match the specified text.
+// Useful for narrowing down elements in dynamic lists (e.g., finding a specific product card).
 func (e *Element) FilterByText(text string, description string) *Element {
 	e.log.Debug(
 		"Filtering element by text",
@@ -252,7 +273,8 @@ func (e *Element) FilterByText(text string, description string) *Element {
 	}
 }
 
-// FindCSS finds a sub-element using CSS selector.
+// FindCSS finds a child element using the specified CSS selector.
+// The search is scoped within this element's locator.
 func (e *Element) FindCSS(subSelector string, description string) *Element {
 	e.log.Debug(
 		"Finding sub-element by CSS",
@@ -269,7 +291,8 @@ func (e *Element) FindCSS(subSelector string, description string) *Element {
 	}
 }
 
-// FindXPath finds a sub-element using XPath locator.
+// FindXPath finds a child element using the specified XPath expression.
+// The search is scoped within this element's locator.
 func (e *Element) FindXPath(xpath string, description string) *Element {
 	e.log.Debug(
 		"Finding sub-element by XPath",
@@ -286,7 +309,8 @@ func (e *Element) FindXPath(xpath string, description string) *Element {
 	}
 }
 
-// First returns the first element of the locator.
+// First returns the first element from the locator's matched elements.
+// Use when the locator matches multiple elements but only the first is needed.
 func (e *Element) First(description string) *Element {
 	return &Element{
 		page:        e.page,
@@ -297,7 +321,8 @@ func (e *Element) First(description string) *Element {
 	}
 }
 
-// Nth returns the nth element of the locator.
+// Nth returns the element at the specified zero-based index.
+// Use for accessing specific elements in a list.
 func (e *Element) Nth(index int, description string) *Element {
 	return &Element{
 		page:        e.page,
@@ -308,7 +333,7 @@ func (e *Element) Nth(index int, description string) *Element {
 	}
 }
 
-// Count returns the number of elements matched by the locator.
+// Count returns the number of elements matching the locator.
 func (e *Element) Count() (int, error) {
 	e.log.Debug("Counting element", "element", e.description)
 
@@ -320,7 +345,8 @@ func (e *Element) Count() (int, error) {
 	return count, nil
 }
 
-// Blur removes focus from the element.
+// Blur removes focus from the element by dispatching a blur event.
+// Use this to trigger validation or state changes that occur on focus loss.
 func (e *Element) Blur() error {
 	e.log.Debug("Removing focus from element", "element", e.description)
 
@@ -331,7 +357,8 @@ func (e *Element) Blur() error {
 	return nil
 }
 
-// Press simulates a key press on the element.
+// Press simulates a keyboard key press on the element.
+// Use for keyboard shortcuts (e.g., Enter, Tab, Escape) or special keys.
 func (e *Element) Press(key string) error {
 	e.log.Debug(
 		"Pressing key on element",
@@ -346,7 +373,9 @@ func (e *Element) Press(key string) error {
 	return nil
 }
 
-// GetBoundingBox returns the bounding box of the element.
+// GetBoundingBox returns the element's position and size as {X, Y, Width, Height}.
+// It waits for the element to be visible before measuring.
+// Returns nil if the element is detached from DOM.
 func (e *Element) GetBoundingBox() (*playwright.Rect, error) {
 	e.log.Debug(
 		"Getting bounding box",

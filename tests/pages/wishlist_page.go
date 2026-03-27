@@ -10,10 +10,13 @@ import (
 	"github.com/playwright-community/playwright-go"
 )
 
+// WishlistPage provides methods for interacting with the wishlist/favorites page.
 type WishlistPage struct {
+	// BasePage provides inherited navigation and element methods.
 	*pages.BasePage
 }
 
+// NewWishlistPage creates a new WishlistPage instance with page-scoped logger.
 func NewWishlistPage(
 	page playwright.Page,
 	baseURL string,
@@ -31,6 +34,7 @@ func NewWishlistPage(
 	}
 }
 
+// GetItemsCount returns the number of product cards in the wishlist.
 func (p *WishlistPage) GetItemsCount() (int, error) {
 	return p.CSS(
 		".page-favorite .product-card",
@@ -38,6 +42,9 @@ func (p *WishlistPage) GetItemsCount() (int, error) {
 	).Count()
 }
 
+// Clear removes all items from the wishlist by repeatedly clicking delete buttons.
+// It loops until the wishlist is empty, waiting for network idle after each removal.
+// Navigates to /favorite first.
 func (p *WishlistPage) Clear() error {
 	p.Log.Debug("Clearing wishlist")
 
@@ -75,6 +82,7 @@ func (p *WishlistPage) Clear() error {
 	}
 }
 
+// IsEmpty returns true if the wishlist contains no items.
 func (p *WishlistPage) IsEmpty() (bool, error) {
 	count, err := p.GetItemsCount()
 	if err != nil {
@@ -83,6 +91,8 @@ func (p *WishlistPage) IsEmpty() (bool, error) {
 	return count == 0, nil
 }
 
+// FindProductURL returns the href from the product name link in the wishlist.
+// Returns error if the product is not found in the wishlist.
 func (p *WishlistPage) FindProductURL(name string) (string, error) {
 	p.Log.Debug("Checking product in wishlist", "name", name)
 

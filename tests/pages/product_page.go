@@ -10,10 +10,13 @@ import (
 	"github.com/playwright-community/playwright-go"
 )
 
+// ProductPage provides methods for interacting with the product details page.
 type ProductPage struct {
+	// BasePage provides inherited navigation and element methods.
 	*pages.BasePage
 }
 
+// NewProductPage creates a new ProductPage instance.
 func NewProductPage(
 	page playwright.Page,
 	baseURL string,
@@ -31,6 +34,8 @@ func NewProductPage(
 	}
 }
 
+// OpenDetails clicks the "Характеристики" tab to expand the product details section.
+// Call this before extracting dimension parameters.
 func (p *ProductPage) OpenDetails() error {
 	p.Log.Debug("Click button that opens details of product")
 	return p.CSS(
@@ -39,6 +44,9 @@ func (p *ProductPage) OpenDetails() error {
 	).Click()
 }
 
+// GetDetails extracts complete product data from the product page.
+// It reads the name (h1), price, and dimensions (Ширина/Глубина) from the details section.
+// Returns Product struct with all extracted fields.
 func (p *ProductPage) GetDetails() (*Product, error) {
 	p.Log.Debug("Getting details of product")
 
@@ -81,6 +89,9 @@ func (p *ProductPage) GetDetails() (*Product, error) {
 	}, nil
 }
 
+// GetParam extracts a parameter value from the product details table.
+// It finds the row with the matching filter name and returns the next cell value as integer.
+// Common filters include "Ширина" (width), "Глубина" (depth), "Высота" (height).
 func (p *ProductPage) GetParam(filter string) (int, error) {
 	xpath := fmt.Sprintf(
 		`//div[contains(@class,'product-tab__block')]//td[contains(.,'%s')]`+
@@ -112,6 +123,9 @@ func (p *ProductPage) GetParam(filter string) (int, error) {
 	return productFilter, nil
 }
 
+// AddToCart clicks the "В корзину" button to add the product to cart.
+// It auto-accepts any dialogs that appear and waits for navigation to /cart.
+// Returns error if the click fails or navigation does not occur.
 func (p *ProductPage) AddToCart() error {
 	p.Log.Debug("Adding product to cart")
 
@@ -139,6 +153,8 @@ func (p *ProductPage) AddToCart() error {
 	return nil
 }
 
+// GoToCartViaDialog accepts the dialog and waits for navigation to /cart.
+// Use this when the product page shows a dialog instead of auto-navigating.
 func (p *ProductPage) GoToCartViaDialog(dialog playwright.Dialog) error {
 	p.Log.Debug("Accepting dialog to navigate to cart")
 

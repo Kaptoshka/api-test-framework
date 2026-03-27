@@ -13,15 +13,22 @@ import (
 
 // Manager manages the browser and page lifecycle.
 type Manager struct {
-	pw      *playwright.Playwright
+	// pw is the Playwright instance that controls browser execution.
+	pw *playwright.Playwright
+	// browser is the active browser instance (Chromium, Firefox, or WebKit).
 	browser playwright.Browser
+	// context is the browser context that holds page state and viewport settings.
 	context playwright.BrowserContext
-	Page    playwright.Page
-	cfg     *config.Config
-	log     *slog.Logger
+	// Page is the current page for interactions.
+	Page playwright.Page
+	// cfg is the framework configuration.
+	cfg *config.Config
+	// log is the logger for browser operations.
+	log *slog.Logger
 }
 
-// New creates a new instance of Manager.
+// New creates a new instance of Manager without launching the browser.
+// Call Launch() separately to initialize the browser.
 func New(cfg *config.Config, log *slog.Logger) *Manager {
 	return &Manager{
 		cfg: cfg,
@@ -29,7 +36,10 @@ func New(cfg *config.Config, log *slog.Logger) *Manager {
 	}
 }
 
-// Launch starts the browser and creates a new page.
+// Launch starts the browser and creates a new page with configured timeouts.
+// It initializes Playwright, launches the configured browser type, creates
+// a browser context with the specified viewport, and sets up default timeouts.
+// Tracing is enabled automatically if TRACE=true environment variable is set.
 func (m *Manager) Launch() error {
 	m.log.Info("Launching Playwright...")
 
@@ -87,7 +97,8 @@ func (m *Manager) Launch() error {
 	return nil
 }
 
-// Close closes the browser, and Playwright, saves trace if needed.
+// Close closes the browser, saves trace if TRACE=true, and releases all resources.
+// Tracing is saved to artifacts/traces/ directory with timestamp-based naming.
 func (m *Manager) Close() error {
 	if os.Getenv("TRACE") == "true" {
 		traceDir := config.DefaultTracesDir
@@ -128,7 +139,8 @@ func (m *Manager) Close() error {
 	return nil
 }
 
-// NavigateTo navigates to the specified URL.
+// NavigateTo navigates to the specified absolute URL.
+// It waits for network idle before returning, ensuring page resources are loaded.
 func (m *Manager) NavigateTo(url string) error {
 	m.log.Info("Navigating to", "url", url)
 	if _, err := m.Page.Goto(url, playwright.PageGotoOptions{
@@ -139,6 +151,8 @@ func (m *Manager) NavigateTo(url string) error {
 	return nil
 }
 
+// getBrowserType returns the appropriate Playwright browser type based on config.
+// Returns chromium for unrecognized browser values.
 func (m *Manager) getBrowserType() (playwright.BrowserType, error) {
 	switch m.cfg.Browser {
 	case config.BrowserFirefox:
@@ -152,6 +166,9 @@ func (m *Manager) getBrowserType() (playwright.BrowserType, error) {
 	}
 }
 
+// getBrowserLaunchOptions returns the launch options for the configured browser.
+// It reads custom executable paths from PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH,
+// PLAYWRIGHT_FIREFOX_EXECUTABLE_PATH, and PLAYWRIGHT_WEBKIT_EXECUTABLE_PATH env vars.
 func (m *Manager) getBrowserLaunchOptions() playwright.BrowserTypeLaunchOptions {
 	headless := m.cfg.Headless
 	slowMo := float64(m.cfg.SlowMo.Milliseconds())

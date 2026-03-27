@@ -12,33 +12,45 @@ import (
 	"autotests/internal/screenshot"
 )
 
-// TestSuite is the base for all test suites.
+// TestSuite is the base struct for all test suites providing browser, reporting, and logging.
 type TestSuite struct {
-	T          *testing.T
-	Config     *config.Config
-	Browser    *browser.Manager
+	// T is the testing context for the current test.
+	T *testing.T
+	// Config is the loaded framework configuration.
+	Config *config.Config
+	// Browser is the browser instance for the test.
+	Browser *browser.Manager
+	// Screenshot is the screenshot capture service.
 	Screenshot *screenshot.Service
-	Reporter   *reporter.AllureReporter
-	SuiteName  string
-	Log        *slog.Logger
+	// Reporter is the Allure report for test results.
+	Reporter *reporter.AllureReporter
+	// SuiteName is the name of the test suite for reporting.
+	SuiteName string
+	// Log is the test-scoped logger.
+	Log *slog.Logger
 }
 
-// TestMeta contains metadata for a test.
+// TestMeta contains metadata for a test to be recorded in Allure report.
 type TestMeta struct {
+	// Description is the human-readable test description.
 	Description string
-	Severity    string
-	Feature     string
+	// Severity is the impact level (blocker, critical, normal, minor, trivial).
+	Severity string
+	// Feature is the feature being tested (e.g., cart, search, wishlist).
+	Feature string
 }
 
+// Severity levels for test prioritization.
 const (
-	SeverityBlocker  = "blocker"
-	SeverityCritical = "critical"
-	SeverityNormal   = "normal"
-	SeverityMinor    = "minor"
-	SeverityTrivial  = "trivial"
+	SeverityBlocker  = "blocker"  // Critical bug blocking test execution
+	SeverityCritical = "critical" // Major functionality broken
+	SeverityNormal   = "normal"   // Standard test case
+	SeverityMinor    = "minor"    // Minor issue or edge case
+	SeverityTrivial  = "trivial"  // Cosmetic or low priority
 )
 
-// New creates a configured test suite.
+// New creates a configured test suite without launching the browser.
+// Call Setup() to initialize browser and reporters.
 func New(t *testing.T, suiteName string) *TestSuite {
 	cfg := config.Load()
 
@@ -49,7 +61,9 @@ func New(t *testing.T, suiteName string) *TestSuite {
 	}
 }
 
-// Setup initializes the browser and reporters for a test.
+// Setup initializes the browser, logger, and reporters for a test.
+// It creates a test-scoped logger, launches the browser, and initializes Allure reporter.
+// Returns error if browser launch fails; marks test as broken in that case.
 func (s *TestSuite) Setup(testName string) error {
 	s.Log = logger.ForTest(s.T)
 	s.Screenshot = screenshot.New(s.Log)
@@ -66,7 +80,9 @@ func (s *TestSuite) Setup(testName string) error {
 	return nil
 }
 
-// Teardown handles cleanup, screenshots on failure, and finalizes reports.
+// Teardown handles cleanup, captures screenshot on failure, and finalizes reports.
+// It captures a screenshot if testErr is not nil, finalizes the Allure report,
+// and closes the browser. Safe to call even if Setup failed.
 func (s *TestSuite) Teardown(testName string, testErr *error) {
 	if testErr != nil && *testErr != nil {
 		s.Log.Warn("Test FAILED -- capturing screenshot", "test", testName)
@@ -90,7 +106,9 @@ func (s *TestSuite) Teardown(testName string, testErr *error) {
 	s.Log.Info("Test teardown complete", "test", testName)
 }
 
-// Step records a named step in the report and logs it.
+// Step executes fn as a named test step with Allure reporting.
+// It starts a step, executes the function, and stops with passed/failed status.
+// Returns error with step name prefix if fn fails.
 func (s *TestSuite) Step(name string, fn func() error) error {
 	s.Reporter.StartStep(name)
 
@@ -103,17 +121,23 @@ func (s *TestSuite) Step(name string, fn func() error) error {
 	return nil
 }
 
-// NavigateTo opens a URL using the managed browser page.
+// NavigateTo opens the specified absolute URL using the managed browser page.
+// Convenience method wrapping browser.NavigateTo.
 func (s *TestSuite) NavigateTo(url string) error {
 	return s.Browser.NavigateTo(url)
 }
 
+// label is an internal struct for tracking reporter labels.
 type label struct {
-	key   string
+	// key is the label name.
+	key string
+	// value is the label value.
 	value string
 }
 
-// SetMeta sets metadata for the test.
+// SetMeta sets test metadata in the Allure report.
+// It sets the description and adds severity/feature labels.
+// Skips empty values.
 func (s *TestSuite) SetMeta(meta TestMeta) {
 	if meta.Description != "" {
 		s.Reporter.SetDescription(meta.Description)

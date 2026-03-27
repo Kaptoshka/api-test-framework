@@ -12,20 +12,30 @@ import (
 	"github.com/playwright-community/playwright-go"
 )
 
+// Product represents product data extracted from catalog cards.
 type Product struct {
-	Name  string
+	// Name is the product display name.
+	Name string
+	// Price is the current price in rubles.
 	Price int
+	// Width is the width dimension in millimeters.
 	Width int
+	// Depth is the depth dimension in millimeters.
 	Depth int
-	URL   string
+	// URL is the absolute product page URL.
+	URL string
 }
 
+// CatalogPage provides methods for interacting with the product catalog page.
 type CatalogPage struct {
+	// BasePage provides inherited navigation and element methods.
 	*pages.BasePage
-
+	// productCards is the locator for visible product cards (excludes carousel items).
 	productCards *elements.Element
 }
 
+// NewCatalogPage creates a new CatalogPage with product card locator.
+// The locator targets .product-card:not(.owl-carousel .product-card) to exclude carousel items.
 func NewCatalogPage(
 	page playwright.Page,
 	baseURL string,
@@ -50,6 +60,8 @@ func NewCatalogPage(
 	}
 }
 
+// ClickFilterContainer expands the filter panel by clicking the filter title link.
+// The filterName should match the visible text on the filter toggle link.
 func (p *CatalogPage) ClickFilterContainer(filterName string) error {
 	p.Log.Debug("Clicking filter container", "filter", filterName)
 	return p.CSS(
@@ -58,6 +70,9 @@ func (p *CatalogPage) ClickFilterContainer(filterName string) error {
 	).Click()
 }
 
+// SetRangeSliderByDrag sets the price range by dragging the min and max handles.
+// It calculates handle positions proportionally within the track bounds.
+// Returns error if from/to values are outside the filter's absolute min/max range.
 func (p *CatalogPage) SetRangeSliderByDrag(
 	filterName string,
 	from int,
@@ -145,6 +160,8 @@ func (p *CatalogPage) SetRangeSliderByDrag(
 	return nil
 }
 
+// dragHandleTo is an internal helper that drags an element to the specified coordinates.
+// It performs the drag in 10 steps for smooth movement.
 func (p *CatalogPage) dragHandleTo(
 	handle *elements.Element,
 	targetX float64,
@@ -177,6 +194,8 @@ func (p *CatalogPage) dragHandleTo(
 	return mouse.Up()
 }
 
+// ClickApplyButton clicks the "Применить фильтр" button to apply selected filters.
+// Call this after setting filter values.
 func (p *CatalogPage) ClickApplyButton() error {
 	p.Log.Debug("Clicking apply button")
 	return p.CSS(
@@ -185,6 +204,8 @@ func (p *CatalogPage) ClickApplyButton() error {
 	).Click()
 }
 
+// WaitForResults waits for at least one product card to appear after filter application.
+// Use this after applying filters to ensure results are loaded.
 func (p *CatalogPage) WaitForResults() error {
 	p.Log.Debug("Waiting for results to update")
 
@@ -195,11 +216,14 @@ func (p *CatalogPage) WaitForResults() error {
 	return nil
 }
 
+// GetResultsCount returns the number of visible product cards matching the locator.
 func (p *CatalogPage) GetResultsCount() (int, error) {
 	p.Log.Debug("Getting results count")
 	return p.productCards.Count()
 }
 
+// ClickSortButton clicks the sort button with the specified name.
+// Common sort options include "цене", "названию", "новизне".
 func (p *CatalogPage) ClickSortButton(sortName string) error {
 	p.Log.Debug("Clicking sort button", "SortName", sortName)
 	return p.CSS(
@@ -211,6 +235,8 @@ func (p *CatalogPage) ClickSortButton(sortName string) error {
 	).Click()
 }
 
+// FindProduct verifies that a product with the specified name is visible in the catalog.
+// Returns error if the product is not found or not visible.
 func (p *CatalogPage) FindProduct(
 	name string,
 ) error {
@@ -227,6 +253,9 @@ func (p *CatalogPage) FindProduct(
 	return nil
 }
 
+// GetProductCard extracts complete product data from the catalog card.
+// It reads the name, price, dimensions (Ширина/Глубина), and URL.
+// Returns Product struct with all extracted fields.
 func (p *CatalogPage) GetProductCard(name string) (*Product, error) {
 	p.Log.Debug("Getting product card", "name", name)
 
@@ -300,6 +329,8 @@ func (p *CatalogPage) GetProductCard(name string) (*Product, error) {
 	}, nil
 }
 
+// GetParamCSS is an internal helper that extracts a parameter value from a card element.
+// It finds the small text matching paramName within the element.
 func (p *CatalogPage) GetParamCSS(
 	elem *elements.Element,
 	paramName string,
@@ -310,6 +341,7 @@ func (p *CatalogPage) GetParamCSS(
 	).FilterByText(paramName, paramName).GetText()
 }
 
+// GetURL is an internal helper that extracts the href attribute from a child element.
 func (p *CatalogPage) GetURL(
 	elem *elements.Element,
 	selector string,
@@ -320,6 +352,7 @@ func (p *CatalogPage) GetURL(
 	).GetAttribute("href")
 }
 
+// GetProductCardURL returns the absolute URL for the product card with the specified name.
 func (p *CatalogPage) GetProductCardURL(name string) (string, error) {
 	return p.GetURL(
 		p.productCards.FilterByText(
@@ -330,6 +363,7 @@ func (p *CatalogPage) GetProductCardURL(name string) (string, error) {
 	)
 }
 
+// AddToWishlist clicks the favorite icon on the product card to add it to wishlist.
 func (p *CatalogPage) AddToWishlist(name string) error {
 	p.Log.Debug("Click button that adds product to wishlist", "name", name)
 	return p.productCards.FilterByText(
@@ -343,6 +377,8 @@ func (p *CatalogPage) AddToWishlist(name string) error {
 	).Click()
 }
 
+// IsActiveIcon verifies that the favorite icon has the active class for the product.
+// Returns error if the icon is not active, indicating the add to wishlist failed.
 func (p *CatalogPage) IsActiveIcon(name string) error {
 	p.Log.Debug(
 		"Checking if favorite icon for product [%s] is active",

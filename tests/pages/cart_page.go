@@ -10,10 +10,13 @@ import (
 	"github.com/playwright-community/playwright-go"
 )
 
+// CartPage provides methods for interacting with the shopping cart page.
 type CartPage struct {
+	// BasePage provides inherited navigation and element methods.
 	*pages.BasePage
 }
 
+// NewCartPage creates a new CartPage instance.
 func NewCartPage(
 	page playwright.Page,
 	baseURL string,
@@ -31,6 +34,9 @@ func NewCartPage(
 	}
 }
 
+// Clear removes all items from the cart by repeatedly clicking "Удалить" button.
+// It auto-accepts any confirmation dialogs that appear.
+// Navigates to /cart first and loops until cart is empty.
 func (p *CartPage) Clear() error {
 	p.Log.Debug("Clearing cart")
 
@@ -75,6 +81,9 @@ func (p *CartPage) Clear() error {
 	}
 }
 
+// CheckCartForAndValidatePrice finds the cart row matching the product name,
+// extracts the price, and compares it with the expected price.
+// Returns error if the product is not found or prices do not match.
 func (p *CartPage) CheckCartForAndValidatePrice(
 	expectedProduct *Product,
 ) error {

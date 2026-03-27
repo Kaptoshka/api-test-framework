@@ -10,17 +10,26 @@ import (
 	"github.com/playwright-community/playwright-go"
 )
 
+// Header provides methods for interacting with the site header component.
 type Header struct {
-	page    playwright.Page
-	Log     *slog.Logger
+	// page is the Playwright page for interactions.
+	page playwright.Page
+	// Log is the component-scoped logger.
+	Log *slog.Logger
+	// timeout is the default timeout for waits.
 	timeout time.Duration
-
+	// searchInput locates the visible search input field.
 	searchInput *elements.Element
-	searchBtn   *elements.Element
+	// searchBtn locates the visible search submit button.
+	searchBtn *elements.Element
+	// wishlistBtn locates the visible wishlist indicator.
 	wishlistBtn *elements.Element
-	cartBtn     *elements.Element
+	// cartBtn locates the visible cart counter.
+	cartBtn *elements.Element
 }
 
+// NewHeader creates a new Header with pre-initialized element locators.
+// All locators target visible elements only using :visible CSS pseudo-selector.
 func NewHeader(
 	page playwright.Page,
 	timeout time.Duration,
@@ -62,6 +71,8 @@ func NewHeader(
 	}
 }
 
+// Search fills the search input with the query and presses Enter.
+// Returns error if the input is not visible or interaction fails.
 func (h *Header) Search(query string) error {
 	h.Log.Info("Searching for product via header", "query", query)
 
@@ -80,12 +91,14 @@ func (h *Header) Search(query string) error {
 	return nil
 }
 
+// OpenWishlist clicks the wishlist button to navigate to the wishlist page.
 func (h *Header) OpenWishlist() error {
 	h.Log.Debug("Click button that opens wishlist")
 
 	return h.wishlistBtn.Click()
 }
 
+// OpenCart clicks the cart button to navigate to the cart page.
 func (h *Header) OpenCart() error {
 	h.Log.Debug("Click button that opens cart")
 

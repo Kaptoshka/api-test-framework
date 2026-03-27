@@ -9,10 +9,13 @@ import (
 	"github.com/playwright-community/playwright-go"
 )
 
+// SearchResultsPage provides methods for interacting with search results.
 type SearchResultsPage struct {
+	// BasePage provides inherited navigation and element methods.
 	*pages.BasePage
 }
 
+// NewSearchResultsPage creates a new SearchResultsPage instance.
 func NewSearchResultsPage(
 	page playwright.Page,
 	baseURL string,
@@ -30,6 +33,8 @@ func NewSearchResultsPage(
 	}
 }
 
+// CheckSearchResult returns the product name text from the first search result.
+// The query parameter is currently unused for validation.
 func (p *SearchResultsPage) CheckSearchResult(query string) (string, error) {
 	p.Log.Debug("Checking search result", "query", query)
 	return p.CSS(
