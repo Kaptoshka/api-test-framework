@@ -1,6 +1,38 @@
-# 🎭 Playwright Go Testing Framework
+<h1 align="center"> 🎭 Playwright Go Testing Framework</h1>
+
+<div align="center">
+
+![go](https://img.shields.io/static/v1?style=flat&label=Go&message=1.26.1&colorA=24273A&colorB=91d7e3&logo=go)
+![chromium](https://img.shields.io/static/v1?style=flat&label=Chromium&message=latest&colorA=24273A&colorB=91d7e3&logo=googlechrome)
+![firefox](https://img.shields.io/static/v1?style=flat&label=Firefox&message=latest&colorA=24273A&colorB=91d7e3&logo=firefoxbrowser)
+![webkit](https://img.shields.io/static/v1?style=flat&label=WebKit&message=latest&colorA=24273A&colorB=91d7e3&logo=apple)
+![license](https://img.shields.io/static/v1?style=flat&label=License&message=MIT&colorA=24273A&colorB=91d7e3&logo=gitbook&logoColor=91d7e3)
+
+</div>
 
 An automated GUI testing framework for web applications built with Go and Playwright.
+
+## Table of Contents
+
+- [Tech Stack](#tech-stack)
+- [Architecture](#architecture)
+    - [Layer Responsibilities](#layer-responsibilities)
+- [Quick Start](#quick-start)
+    - [Prerequisites](#prerequisites)
+    - [NixOS / WSL](#nixos--wsl)
+    - [Windows / macOS / Linux](#windows--macos--linux)
+- [Configuration](#configuration)
+- [Running Tests](#running-tests)
+- [Viewing Reports](#viewing-reports)
+- [Writing a Test Case](#writing-a-test-case)
+- [Creating a Page Object](#creating-a-page-object)
+- [Logging](#logging)
+- [Artifacts](#artifacts)
+- [Browser Support](#browser-support)
+- [CI/CD](#cicd)
+    - [Github Actions](#github-actions)
+- [Linters](#linters)
+- [NixOS Environment Variables](#nixos-environment-variables)
 
 ---
 
@@ -346,4 +378,4 @@ PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 
 ## License
 
-MIT
+[MIT](LICENSE)
