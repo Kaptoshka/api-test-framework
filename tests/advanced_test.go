@@ -14,6 +14,18 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// validateUser checks that a user has required fields.
+// Returns an error if the user has zero ID or all fields are empty.
+func validateUser(user *endpoints.User) error {
+	if user.ID == 0 {
+		return errors.New("user has zero ID")
+	}
+	if user.Name == "" && user.Username == "" && user.Email == "" {
+		return fmt.Errorf("user %d has empty fields", user.ID)
+	}
+	return nil
+}
+
 // TestAdvancedFiltering tests the GET /posts endpoint with advanced filtering.
 // It filters posts by title containing "web" and sorts by ID in descending order.
 // Expected: HTTP 200 OK with JSON body containing filtered and sorted posts.
@@ -159,21 +171,8 @@ func TestUserSearch(t *testing.T) {
 			return nil
 		}
 		for _, user := range result.Data {
-			if user.ID == 0 {
-				return errors.New("user has zero ID")
-			}
-			found := false
-			if user.Name != "" {
-				found = true
-			}
-			if user.Username != "" {
-				found = true
-			}
-			if user.Email != "" {
-				found = true
-			}
-			if !found {
-				return fmt.Errorf("user %d has empty fields", user.ID)
+			if err := validateUser(user); err != nil {
+				return err
 			}
 		}
 		return nil
