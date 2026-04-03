@@ -7,16 +7,17 @@ import (
 	"testing"
 	"time"
 
-	"autotests/internal/config"
+	"apitests/internal/config"
 
 	"github.com/lmittmann/tint"
 )
 
-// New creates a logger with dual output: colored console and timestamped file.
+// New creates a new [slog.Logger] with dual output: colored console and timestamped file.
 // Log level is controlled by LOG_LEVEL env var (default: info).
 // File is written to artifacts/logs/session_[timestamp].log.
 // Falls back to console-only if file creation fails.
-func New() *slog.Logger {
+// Returns the configured logger.
+func New(cfg *config.Config) *slog.Logger {
 	level := os.Getenv("LOG_LEVEL")
 
 	var lvl slog.Level
@@ -24,7 +25,7 @@ func New() *slog.Logger {
 		lvl = slog.LevelInfo
 	}
 
-	logDir := config.DefaultLogDir
+	logDir := cfg.LogDir
 	_ = os.MkdirAll(logDir, 0o750)
 
 	consoleHandler := tint.NewHandler(os.Stdout, &tint.Options{
@@ -52,14 +53,15 @@ func New() *slog.Logger {
 	return slog.New(handler)
 }
 
-// multiHandler combines multiple slog handlers for dual output.
+// multiHandler is a [slog.Handler] that combines multiple handlers for dual output.
 // It delegates all operations to each underlying handler sequentially.
 type multiHandler struct {
 	// handlers are the underlying slog handlers to delegate to.
 	handlers []slog.Handler
 }
 
-// Enabled checks if the given log level is enabled by delegating to the first handler.
+// Enabled reports whether the given log level is enabled.
+// It delegates to the first handler in the list.
 func (h *multiHandler) Enabled(
 	ctx context.Context,
 	l slog.Level,
@@ -68,7 +70,7 @@ func (h *multiHandler) Enabled(
 }
 
 // Handle passes the log record to all handlers sequentially.
-// Returns the first error encountered.
+// It returns the first error encountered, if any.
 func (h *multiHandler) Handle(
 	ctx context.Context,
 	r slog.Record,
@@ -102,6 +104,6 @@ func (h *multiHandler) WithGroup(name string) slog.Handler {
 
 // ForTest creates a test-scoped logger with test name in context.
 // Use this for test-specific logging with automatic test name tagging.
-func ForTest(t *testing.T) *slog.Logger {
-	return New().With("test", t.Name())
+func ForTest(t *testing.T, cfg *config.Config) *slog.Logger {
+	return New(cfg).With("test", t.Name())
 }
