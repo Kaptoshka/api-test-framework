@@ -14,46 +14,25 @@ deps:
 	go mod tidy
 	go mod download
 
-# ─── Test ────────────────────────────────────────────────────────────────────
+# ─── Test ───────────────────────────────────────────────────────────────────
 
-ENV_FILE ?= $(CURDIR)/.env
-HEADLESS ?= true
-TRACE    ?= true
-BROWSER  ?= chromium
 TEST_DIR  = ./tests/...
-GO_TEST   = go test $(TEST_DIR) -v -count=1
+GO_TEST   = ALLURE_RESULTS_DIR=$(ALLURE_RESULTS_DIR) go test $(TEST_DIR) -v -count=1
 
 .PHONY: test
 test: ## Run all tests
-	ENV_FILE=$(ENV_FILE) $(GO_TEST)
-
-.PHONY: test-chrome
-test-chrome: ## Run tests on Chrome
-	ENV_FILE=$(ENV_FILE) BROWSER=chrome HEADLESS=true $(GO_TEST)
-
-.PHONY: test-firefox
-test-firefox: ## Run tests on Firefox
-	ENV_FILE=$(ENV_FILE) BROWSER=firefox HEADLESS=true $(GO_TEST)
-
-.PHONY: test-webkit
-test-webkit: ## Run tests on WebKit
-	ENV_FILE=$(ENV_FILE) BROWSER=webkit HEADLESS=true $(GO_TEST)
-
-.PHONY: test-headed
-test-headed: ## Run tests with browser visible
-	ENV_FILE=$(ENV_FILE) BROWSER=chrome HEADLESS=false $(GO_TEST)
+	$(GO_TEST)
 
 .PHONY: test-one
 test-one: ## Run a specific test: make test-one TEST=TestName
 	@test -n "$(TEST)" || (echo "Usage: make test-one TEST=TestName" && exit 1)
-	ENV_FILE=$(ENV_FILE) BROWSER=chrome HEADLESS=true $(GO_TEST) -run $(TEST)# Generate and open Allure report
+	$(GO_TEST) -run $(TEST)
 
 # ─── Allure ──────────────────────────────────────────────────────────────────
 
-ALLURE_RESULTS_DIR=./tests/artifacts/allure-results
-ALLURE_REPORTS_DIR=./tests/artifacts/allure-reports
-LOGS_DIR=./tests/artifacts/logs
-TRACES_DIR=./tests/artifacts/traces
+ALLURE_RESULTS_DIR=$(PWD)/artifacts/allure-results
+ALLURE_REPORTS_DIR=$(PWD)/artifacts/allure-reports
+LOGS_DIR=$(PWD)/artifacts/logs
 
 .PHONY: allure-serve
 allure-serve: ## Serve Allure report
@@ -71,7 +50,7 @@ allure-generate: ## Generate Allure report
 
 .PHONY: clean
 clean: ## Remove generated artifacts
-	rm -rf $(ALLURE_RESULTS_DIR) $(ALLURE_REPORTS_DIR) $(LOGS_DIR) $(TRACES_DIR)
+	rm -rf $(ALLURE_RESULTS_DIR) $(ALLURE_REPORTS_DIR) $(LOGS_DIR)
 	mkdir -p $(ALLURE_RESULTS_DIR)
 
 # ─── Format ──────────────────────────────────────────────────────────────────

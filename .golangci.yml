@@ -39,10 +39,10 @@ formatters:
             # with the given prefixes are grouped after 3rd-party packages.
             # Default: []
             local-prefixes:
-                - autotests
+                - apitests
 
         gofumpt:
-            module-path: autotests
+            module-path: apitests
 
         golines:
             # Target maximum line length.
