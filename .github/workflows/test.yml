@@ -5,28 +5,17 @@ on:
         branches: [main]
     pull_request:
         branches: [main]
-
 jobs:
     test:
         runs-on: ubuntu-latest
-        container:
-            image: mcr.microsoft.com/playwright:v1.42.0-jammy
-
         steps:
             - uses: actions/checkout@v4
-
             - uses: actions/setup-go@v5
               with:
                   go-version-file: go.mod
-
             - name: Run tests
               env:
                   BASE_URL: ${{ secrets.BASE_URL }}
-                  BROWSER: chromium
-                  HEADLESS: "true"
-                  LOG_LEVEL: "info"
-                  TIMEOUT: "30000"
-                  ALLURE_RESULTS_DIR: ./artifacts/allure-results
-                  PLAYWRIGHT_BROWSERS_PATH: /ms-playwright
-                  PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
+                  LOG_LEVEL: info
+                  TIMEOUT: 30000
               run: go test ./tests/... -v
