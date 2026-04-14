@@ -1,3 +1,4 @@
+---
 name: Tests
 
 on:
@@ -33,9 +34,9 @@ jobs:
                   BASE_URL: ${{ secrets.BASE_URL }}
                   LOG_LEVEL: info
                   TIMEOUT: 30000
-                  ALLURE_RESULTS_DIR: artifacts/allure-results
               run: |
-                  go test ./tests/... -v
+                  mkdir -p artifacts/allure-results
+                  ALLURE_RESULTS_DIR=artifacts/allure-results go test ./tests/... -v
 
             - name: Load test report history
               uses: actions/checkout@v3
