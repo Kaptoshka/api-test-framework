@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -90,7 +91,7 @@ func (c *HTTPClient) do(method, path string, body any) (*Response, error) {
 	}
 
 	if fullURL.Host != base.Host {
-		return nil, fmt.Errorf("potential SSRF attempt: host changed")
+		return nil, errors.New("potential SSRF attempt: host changed")
 	}
 
 	url := fullURL.String()
