@@ -8,6 +8,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	neturl "net/url"
 	"time"
 )
 
@@ -75,6 +76,15 @@ func (c *HTTPClient) Patch(path string, body any) (*Response, error) {
 // It handles request creation, execution, and response reading.
 func (c *HTTPClient) do(method, path string, body any) (*Response, error) {
 	url := c.baseURL + path
+
+	parsedURL, err := neturl.Parse(url)
+	if err != nil {
+		return nil, fmt.Errorf("invalid url: %w", err)
+	}
+	if parsedURL.Scheme != "https" && parsedURL.Scheme != "http" {
+		return nil, fmt.Errorf("invalid url scheme: %s", parsedURL.Scheme)
+	}
+
 	c.log.Info("HTTP request", "method", method, "url", url)
 
 	var bodyReader io.Reader
