@@ -88,8 +88,9 @@ func (c *HTTPClient) do(method, path string, body any) (*Response, error) {
 	c.log.Info("HTTP request", "method", method, "url", url)
 
 	var bodyReader io.Reader
+	var data []byte
 	if body != nil {
-		data, err := json.Marshal(body)
+		data, err = json.Marshal(body)
 		if err != nil {
 			return nil, fmt.Errorf("failed to marshal request body: %w", err)
 		}
