@@ -75,15 +75,25 @@ func (c *HTTPClient) Patch(path string, body any) (*Response, error) {
 // do performs the actual HTTP request with the specified method, path, and body.
 // It handles request creation, execution, and response reading.
 func (c *HTTPClient) do(method, path string, body any) (*Response, error) {
-	url := c.baseURL + path
-
-	parsedURL, err := neturl.Parse(url)
+	base, err := neturl.Parse(c.baseURL)
 	if err != nil {
-		return nil, fmt.Errorf("invalid url: %w", err)
+		return nil, fmt.Errorf("invalid base url: %w", err)
 	}
-	if parsedURL.Scheme != "https" && parsedURL.Scheme != "http" {
-		return nil, fmt.Errorf("invalid url scheme: %s", parsedURL.Scheme)
+
+	if base.Scheme != "https" && base.Scheme != "http" {
+		return nil, fmt.Errorf("invalid url scheme: %s", base.Scheme)
 	}
+
+	fullURL, err := base.Parse(path)
+	if err != nil {
+		return nil, fmt.Errorf("invalid path: %w", err)
+	}
+
+	if fullURL.Host != base.Host {
+		return nil, fmt.Errorf("potential SSRF attempt: host changed")
+	}
+
+	url := fullURL.String()
 
 	c.log.Info("HTTP request", "method", method, "url", url)
 
