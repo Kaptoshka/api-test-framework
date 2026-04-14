@@ -6,18 +6,18 @@ import (
 	"time"
 
 	"apitests/internal/client"
-	"apitests/pkg/api"
+	apiclient "apitests/pkg/api"
 )
 
 // PostsAPI provides methods for interacting with the Posts API.
 type PostsAPI struct {
-	*api.BaseClient
+	*apiclient.BaseClient
 }
 
 // NewPostsAPI creates a new PostsAPI client with the specified base URL, timeout, and logger.
 func NewPostsAPI(baseURL string, timeout time.Duration, log *slog.Logger) *PostsAPI {
 	return &PostsAPI{
-		BaseClient: api.New(baseURL, timeout, "PostsAPI", log),
+		BaseClient: apiclient.New(baseURL, timeout, "PostsAPI", log),
 	}
 }
 

@@ -6,18 +6,18 @@ import (
 	"time"
 
 	"apitests/internal/client"
-	"apitests/pkg/api"
+	apiclient "apitests/pkg/api"
 )
 
 // CommentsAPI provides methods for interacting with the Comments API.
 type CommentsAPI struct {
-	*api.BaseClient
+	*apiclient.BaseClient
 }
 
 // NewCommentsAPI creates a new CommentsAPI client with the specified base URL, timeout, and logger.
 func NewCommentsAPI(baseURL string, timeout time.Duration, log *slog.Logger) *CommentsAPI {
 	return &CommentsAPI{
-		BaseClient: api.New(baseURL, timeout, "CommentsAPI", log),
+		BaseClient: apiclient.New(baseURL, timeout, "CommentsAPI", log),
 	}
 }
 

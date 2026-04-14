@@ -6,18 +6,18 @@ import (
 	"time"
 
 	"apitests/internal/client"
-	"apitests/pkg/api"
+	apiclient "apitests/pkg/api"
 )
 
 // UsersAPI provides methods for interacting with the Users API.
 type UsersAPI struct {
-	*api.BaseClient
+	*apiclient.BaseClient
 }
 
 // NewUsersAPI creates a new UsersAPI client with the specified base URL, timeout, and logger.
 func NewUsersAPI(baseURL string, timeout time.Duration, log *slog.Logger) *UsersAPI {
 	return &UsersAPI{
-		BaseClient: api.New(baseURL, timeout, "UsersAPI", log),
+		BaseClient: apiclient.New(baseURL, timeout, "UsersAPI", log),
 	}
 }
 

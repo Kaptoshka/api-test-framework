@@ -6,18 +6,18 @@ import (
 	"time"
 
 	"apitests/internal/client"
-	"apitests/pkg/api"
+	apiclient "apitests/pkg/api"
 )
 
 // TodosAPI provides methods for interacting with the Todos API.
 type TodosAPI struct {
-	*api.BaseClient
+	*apiclient.BaseClient
 }
 
 // NewTodosAPI creates a new TodosAPI client with the specified base URL, timeout, and logger.
 func NewTodosAPI(baseURL string, timeout time.Duration, log *slog.Logger) *TodosAPI {
 	return &TodosAPI{
-		BaseClient: api.New(baseURL, timeout, "TodosAPI", log),
+		BaseClient: apiclient.New(baseURL, timeout, "TodosAPI", log),
 	}
 }
 
