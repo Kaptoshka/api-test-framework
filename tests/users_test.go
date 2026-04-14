@@ -1,6 +1,7 @@
 package api_test
 
 import (
+	"crypto/rand"
 	"errors"
 	"fmt"
 	"net/http"
@@ -17,7 +18,7 @@ import (
 // It sends a GET request to /users and expects a 200 status code.
 // Expected: HTTP 200 OK with JSON body containing non-empty data array and pagination.
 func TestGetAllUsers(t *testing.T) {
-	t.Parallel()
+	// t.Parallel()
 	s := suite.New(t, "UsersAPI")
 	require.NoError(t, s.Setup(t.Name()))
 
@@ -67,7 +68,7 @@ func TestGetAllUsers(t *testing.T) {
 // Skips if no users are available (API may have been reset).
 // Expected: HTTP 200 OK with JSON body containing the user with matching ID and non-empty name/email.
 func TestGetUserByID(t *testing.T) {
-	t.Parallel()
+	// t.Parallel()
 	s := suite.New(t, "UsersAPI")
 	require.NoError(t, s.Setup(t.Name()))
 
@@ -138,7 +139,7 @@ func TestGetUserByID(t *testing.T) {
 // It requests a user with ID 99999 which should not exist.
 // Expected: HTTP 404 Not Found status code.
 func TestGetUserNotFound(t *testing.T) {
-	t.Parallel()
+	// t.Parallel()
 	s := suite.New(t, "UsersAPI")
 	require.NoError(t, s.Setup(t.Name()))
 
@@ -168,7 +169,7 @@ func TestGetUserNotFound(t *testing.T) {
 // Expected: HTTP 201 Created with JSON body containing the created user with generated ID.
 // Verifies that the returned user matches the request data.
 func TestCreateUser(t *testing.T) {
-	t.Parallel()
+	// t.Parallel()
 	s := suite.New(t, "UsersAPI")
 	require.NoError(t, s.Setup(t.Name()))
 
@@ -184,8 +185,8 @@ func TestCreateUser(t *testing.T) {
 	users := endpoints.NewUsersAPI(s.Config.BaseURL, s.Config.Timeout, s.Log)
 
 	req := &endpoints.CreateUserRequest{
-		Name:     "Test User",
-		Username: "testuser",
+		Name:     rand.Text(),
+		Username: rand.Text(),
 		Email:    "test@example.com",
 	}
 
@@ -233,7 +234,7 @@ func TestCreateUser(t *testing.T) {
 // It fetches all users to find a valid ID, then deletes that user.
 // Expected: HTTP 204 No Content status code on successful deletion.
 func TestDeleteUser(t *testing.T) {
-	t.Parallel()
+	// t.Parallel()
 	s := suite.New(t, "UsersAPI")
 	require.NoError(t, s.Setup(t.Name()))
 

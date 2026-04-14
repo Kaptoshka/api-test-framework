@@ -48,7 +48,7 @@ func makePostPayload(userID int, label string) *endpoints.CreatePostRequest {
 // The response may be empty if the API has been reset (daily reset).
 // Expected: HTTP 200 OK with JSON body containing data array and pagination object.
 func TestGetAllPosts(t *testing.T) {
-	t.Parallel()
+	// t.Parallel()
 	s := suite.New(t, "PostsAPI")
 	require.NoError(t, s.Setup(t.Name()))
 
@@ -100,7 +100,7 @@ func TestGetAllPosts(t *testing.T) {
 // Skips if no posts are available (API may have been reset).
 // Expected: HTTP 200 OK with JSON body containing the post with matching ID.
 func TestGetPostByID(t *testing.T) {
-	t.Parallel()
+	// t.Parallel()
 	s := suite.New(t, "PostsAPI")
 	require.NoError(t, s.Setup(t.Name()))
 
@@ -167,7 +167,7 @@ func TestGetPostByID(t *testing.T) {
 // It requests a post with ID 99999 which should not exist.
 // Expected: HTTP 404 Not Found status code.
 func TestGetPostNotFound(t *testing.T) {
-	t.Parallel()
+	// t.Parallel()
 	s := suite.New(t, "PostsAPI")
 	require.NoError(t, s.Setup(t.Name()))
 
@@ -197,7 +197,7 @@ func TestGetPostNotFound(t *testing.T) {
 // Expected: HTTP 201 Created with JSON body containing the created post with generated ID.
 // Verifies that the returned post matches the request data.
 func TestCreatePost(t *testing.T) {
-	t.Parallel()
+	// t.Parallel()
 	s := suite.New(t, "PostsAPI")
 	require.NoError(t, s.Setup(t.Name()))
 
@@ -212,8 +212,25 @@ func TestCreatePost(t *testing.T) {
 
 	posts := endpoints.NewPostsAPI(s.Config.BaseURL, s.Config.Timeout, s.Log)
 
-	// Уникальный payload — не конфликтует при параллельном запуске
-	req := makePostPayload(1, "create")
+	users := endpoints.NewUsersAPI(s.Config.BaseURL, s.Config.Timeout, s.Log)
+
+	var userID int
+	testErr = s.Step("Get user ID for post creation", func() error {
+		result, _, err := users.GetAll()
+		if err != nil {
+			return fmt.Errorf("failed to get users: %v", err)
+		}
+
+		if len(result.Data) == 0 {
+			return errors.New("no users found")
+		}
+
+		userID = result.Data[0].ID
+		return nil
+	})
+	require.NoError(t, testErr, "failed to get user ID")
+
+	req := makePostPayload(userID, "create")
 
 	var created *endpoints.PostResponse
 	testErr = s.Step("POST /posts — expect 201", func() error {
@@ -253,7 +270,7 @@ func TestCreatePost(t *testing.T) {
 // It fetches all posts to find a valid ID, then fully updates that post.
 // Expected: HTTP 200 OK with JSON body containing the updated post with new title.
 func TestUpdatePost(t *testing.T) {
-	t.Parallel()
+	// t.Parallel()
 	s := suite.New(t, "PostsAPI")
 	require.NoError(t, s.Setup(t.Name()))
 
@@ -269,7 +286,7 @@ func TestUpdatePost(t *testing.T) {
 	posts := endpoints.NewPostsAPI(s.Config.BaseURL, s.Config.Timeout, s.Log)
 
 	postID := createTestPost(t, posts, "PUT")
-	req := makePostPayload(1, "PUT-updated")
+	req := makePostPayload(postID, "PUT-updated")
 
 	var updated *endpoints.PostResponse
 	testErr = s.Step(fmt.Sprintf("PUT /posts/%d — expect 200", postID), func() error {
@@ -306,7 +323,7 @@ func TestUpdatePost(t *testing.T) {
 // It fetches all posts to find a valid ID, then deletes that post.
 // Expected: HTTP 204 No Content status code on successful deletion.
 func TestDeletePost(t *testing.T) {
-	t.Parallel()
+	// t.Parallel()
 	s := suite.New(t, "PostsAPI")
 	require.NoError(t, s.Setup(t.Name()))
 
@@ -349,7 +366,7 @@ func TestDeletePost(t *testing.T) {
 // It fetches all posts to find a valid ID, then retrieves the like count for that post.
 // Expected: HTTP 200 OK with JSON body containing postId and total likes count.
 func TestGetPostLikes(t *testing.T) {
-	t.Parallel()
+	// t.Parallel()
 	s := suite.New(t, "PostsAPI")
 	require.NoError(t, s.Setup(t.Name()))
 
@@ -405,7 +422,7 @@ func TestGetPostLikes(t *testing.T) {
 // It searches for posts matching the query "development".
 // Expected: HTTP 200 OK with JSON body containing search results with query, total, and results array.
 func TestSearchPosts(t *testing.T) {
-	t.Parallel()
+	// t.Parallel()
 	s := suite.New(t, "PostsAPI")
 	require.NoError(t, s.Setup(t.Name()))
 
