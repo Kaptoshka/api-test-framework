@@ -22,19 +22,6 @@ jobs:
               with:
                   go-version-file: go.mod
 
-            - name: Setup Java (for Allure)
-              uses: actions/setup-java@v4
-              with:
-                  distribution: temurin
-                  java-version: 17
-
-            - name: Install Allure
-              run: |
-                  curl -o allure.tgz -Ls https://github.com/allure-framework/allure2/releases/latest/download/allure-2.27.0.tgz
-                  tar -zxvf allure.tgz
-                  sudo mv allure-*/ /opt/allure
-                  sudo ln -s /opt/allure/bin/allure /usr/bin/allure
-
             - name: Run tests
               env:
                   BASE_URL: ${{ secrets.BASE_URL }}
@@ -43,21 +30,26 @@ jobs:
               run: |
                   go test ./tests/... -v
 
-            - name: Generate Allure report
+            - name: Load test report history
+              uses: actions/checkout@v3
               if: always()
-              run: |
-                  allure generate ./artifacts/allure-results -o ./allure-report --clean
-
-            - name: Upload Allure report artifact (backup)
-              if: always()
-              uses: actions/upload-artifact@v4
+              continue-on-error: true
               with:
-                  name: allure-report
-                  path: allure-report
+                  ref: gh-pages
+                  path: gh-pages
 
-            - name: Deploy Allure Report to GitHub Pages
-              if: github.ref == 'refs/heads/main'
-              uses: peaceiris/actions-gh-pages@v4
+            - name: Build test report
+              uses: simple-elf/allure-report-action@v1.7
+              if: always()
+              with:
+                  gh_pages: gh-pages
+                  allure_history: allure-history
+                  allure_results: ./artifacts/allure-results
+
+            - name: Publish test report
+              uses: peaceiris/actions-gh-pages@v3
+              if: always()
               with:
                   github_token: ${{ secrets.GITHUB_TOKEN }}
-                  publish_dir: ./allure-report
+                  publish_branch: gh-pages
+                  publish_dir: allure-history
