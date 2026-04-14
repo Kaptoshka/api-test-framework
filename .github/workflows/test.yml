@@ -33,6 +33,7 @@ jobs:
                   BASE_URL: ${{ secrets.BASE_URL }}
                   LOG_LEVEL: info
                   TIMEOUT: 30000
+                  ALLURE_RESULTS_DIR: artifacts/allure-results
               run: |
                   go test ./tests/... -v
 
