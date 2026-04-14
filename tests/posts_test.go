@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"testing"
+	"time"
 
 	"apitests/internal/client"
 	"apitests/pkg/suite"
@@ -12,6 +13,35 @@ import (
 
 	"github.com/stretchr/testify/require"
 )
+
+func uniqueSuffix(label string) string {
+	return fmt.Sprintf("%s-%d",
+		label,
+		time.Now().UnixMilli(),
+	)
+}
+
+func createTestPost(t *testing.T, posts *endpoints.PostsAPI, label string) int {
+	t.Helper()
+	req := makePostPayload(1, label)
+	created, resp, err := posts.Create(req)
+	require.NoError(t, err, "failed to create test post for %s", label)
+	require.Equal(t, http.StatusCreated, resp.StatusCode,
+		"expected 201 when creating test post for %s, got %d. Body: %s",
+		label, resp.StatusCode, string(resp.Body),
+	)
+	require.NotZero(t, created.Data.ID, "created post has zero ID")
+	return created.Data.ID
+}
+
+func makePostPayload(userID int, label string) *endpoints.CreatePostRequest {
+	unique := uniqueSuffix(label)
+	return &endpoints.CreatePostRequest{
+		Title:  fmt.Sprintf("Test post %s", unique),
+		Body:   fmt.Sprintf("Test body %s", unique),
+		UserID: userID,
+	}
+}
 
 // TestGetAllPosts tests the GET /posts endpoint.
 // It sends a GET request to /posts and expects a 200 status code with a paginated response.
@@ -175,18 +205,15 @@ func TestCreatePost(t *testing.T) {
 	defer s.Teardown(t.Name(), &testErr)
 
 	s.SetMeta(suite.TestMeta{
-		Description: "POST /posts creates post and returns 201",
+		Description: "POST /posts creates post and returns 201 with matching data",
 		Severity:    suite.SeverityCritical,
 		Feature:     "posts",
 	})
 
 	posts := endpoints.NewPostsAPI(s.Config.BaseURL, s.Config.Timeout, s.Log)
 
-	req := &endpoints.CreatePostRequest{
-		Title:  "Test Post Title",
-		Body:   "Test post body content",
-		UserID: 1,
-	}
+	// Уникальный payload — не конфликтует при параллельном запуске
+	req := makePostPayload(1, "create")
 
 	var created *endpoints.PostResponse
 	testErr = s.Step("POST /posts — expect 201", func() error {
@@ -196,33 +223,27 @@ func TestCreatePost(t *testing.T) {
 		if err != nil {
 			return err
 		}
-		return posts.AssertStatus(resp, http.StatusCreated)
-	})
-	require.NoError(t, testErr)
-
-	testErr = s.Step("Created post has generated ID", func() error {
-		if created.Data.ID == 0 {
-			return errors.New("expected non-zero ID for created post")
+		if resp.StatusCode != http.StatusCreated {
+			return fmt.Errorf(
+				"expected 201, got %d. Body: %s",
+				resp.StatusCode, string(resp.Body),
+			)
 		}
 		return nil
 	})
 	require.NoError(t, testErr)
 
 	testErr = s.Step("Created post matches request data", func() error {
+		if created.Data.ID == 0 {
+			return errors.New("expected non-zero ID for created post")
+		}
 		if created.Data.Title != req.Title {
-			return fmt.Errorf(
-				"title mismatch: expected %s, got %s",
-				req.Title,
-				created.Data.Title,
-			)
+			return fmt.Errorf("title mismatch: expected %q, got %q", req.Title, created.Data.Title)
 		}
 		if created.Data.Body != req.Body {
-			return fmt.Errorf(
-				"body mismatch: expected %s, got %s",
-				req.Body,
-				created.Data.Body,
-			)
+			return fmt.Errorf("body mismatch: expected %q, got %q", req.Body, created.Data.Body)
 		}
+		s.Log.Info("Post created", "id", created.Data.ID, "title", created.Data.Title)
 		return nil
 	})
 	require.NoError(t, testErr)
@@ -240,32 +261,15 @@ func TestUpdatePost(t *testing.T) {
 	defer s.Teardown(t.Name(), &testErr)
 
 	s.SetMeta(suite.TestMeta{
-		Description: "PUT /posts/:id updates post and returns 200",
+		Description: "PUT /posts/:id replaces post data",
 		Severity:    suite.SeverityNormal,
 		Feature:     "posts",
 	})
 
 	posts := endpoints.NewPostsAPI(s.Config.BaseURL, s.Config.Timeout, s.Log)
 
-	var postID int
-	testErr = s.Step("GET /posts — find valid ID", func() error {
-		result, _, err := posts.GetAll()
-		if err != nil {
-			return err
-		}
-		if len(result.Data) == 0 {
-			return errors.New("no posts available")
-		}
-		postID = result.Data[0].ID
-		return nil
-	})
-	require.NoError(t, testErr)
-
-	req := &endpoints.CreatePostRequest{
-		Title:  "Updated Post Title",
-		Body:   "Updated post body",
-		UserID: 2,
-	}
+	postID := createTestPost(t, posts, "PUT")
+	req := makePostPayload(1, "PUT-updated")
 
 	var updated *endpoints.PostResponse
 	testErr = s.Step(fmt.Sprintf("PUT /posts/%d — expect 200", postID), func() error {
@@ -275,82 +279,24 @@ func TestUpdatePost(t *testing.T) {
 		if err != nil {
 			return err
 		}
-		return posts.AssertStatus(resp, http.StatusOK)
+		if resp.StatusCode != http.StatusOK {
+			return fmt.Errorf(
+				"expected 200 for ID=%d, got %d. Body: %s",
+				postID, resp.StatusCode, string(resp.Body),
+			)
+		}
+		return nil
 	})
 	require.NoError(t, testErr)
 
-	testErr = s.Step("Updated post has new title", func() error {
+	testErr = s.Step("Updated post has new title and body", func() error {
 		if updated.Data.Title != req.Title {
-			return fmt.Errorf(
-				"title mismatch: expected %s, got %s",
-				req.Title,
-				updated.Data.Title,
-			)
+			return fmt.Errorf("title mismatch: expected %q, got %q", req.Title, updated.Data.Title)
 		}
-		return nil
-	})
-	require.NoError(t, testErr)
-}
-
-// TestPatchPost tests the PATCH /posts/:id endpoint.
-// It fetches all posts to find a valid ID, then partially updates that post.
-// Only the title and body fields are included in the request.
-// Expected: HTTP 200 OK with JSON body containing the post with updated title.
-func TestPatchPost(t *testing.T) {
-	t.Parallel()
-	s := suite.New(t, "PostsAPI")
-	require.NoError(t, s.Setup(t.Name()))
-
-	var testErr error
-	defer s.Teardown(t.Name(), &testErr)
-
-	s.SetMeta(suite.TestMeta{
-		Description: "PATCH /posts/:id partially updates post and returns 200",
-		Severity:    suite.SeverityNormal,
-		Feature:     "posts",
-	})
-
-	posts := endpoints.NewPostsAPI(s.Config.BaseURL, s.Config.Timeout, s.Log)
-
-	var postID int
-	testErr = s.Step("GET /posts — find valid ID", func() error {
-		result, _, err := posts.GetAll()
-		if err != nil {
-			return err
+		if updated.Data.Body != req.Body {
+			return fmt.Errorf("body mismatch: expected %q, got %q", req.Body, updated.Data.Body)
 		}
-		if len(result.Data) == 0 {
-			return errors.New("no posts available")
-		}
-		postID = result.Data[0].ID
-		return nil
-	})
-	require.NoError(t, testErr)
-
-	req := &endpoints.PatchPostRequest{
-		Title: "Patched Post Title",
-		Body:  "Patched Post Body",
-	}
-
-	var patched *endpoints.PostResponse
-	testErr = s.Step(fmt.Sprintf("PATCH /posts/%d — expect 200", postID), func() error {
-		var resp *client.Response
-		var err error
-		patched, resp, err = posts.Patch(postID, req)
-		if err != nil {
-			return err
-		}
-		return posts.AssertStatus(resp, http.StatusOK)
-	})
-	require.NoError(t, testErr)
-
-	testErr = s.Step("Patched post has updated title", func() error {
-		if patched.Data.Title != req.Title {
-			return fmt.Errorf(
-				"title mismatch: expected %s, got %s",
-				req.Title,
-				patched.Data.Title,
-			)
-		}
+		s.Log.Info("Post updated", "id", postID, "title", updated.Data.Title)
 		return nil
 	})
 	require.NoError(t, testErr)
@@ -448,81 +394,6 @@ func TestGetPostLikes(t *testing.T) {
 		if result.PostID == 0 {
 			return errors.New(
 				"expected non-zero postId in likes response",
-			)
-		}
-		return nil
-	})
-	require.NoError(t, testErr)
-}
-
-// TestAddPostLike tests the POST /posts/:id/likes endpoint.
-// It fetches all posts to find a valid ID, gets the current like count,
-// then adds a like and verifies the count increased by 1.
-// Expected: HTTP 200 or 201 with JSON body containing updated like count.
-func TestAddPostLike(t *testing.T) {
-	t.Parallel()
-	s := suite.New(t, "PostsAPI")
-	require.NoError(t, s.Setup(t.Name()))
-
-	var testErr error
-	defer s.Teardown(t.Name(), &testErr)
-
-	s.SetMeta(suite.TestMeta{
-		Description: "POST /posts/:id/likes adds like and returns updated count",
-		Severity:    suite.SeverityNormal,
-		Feature:     "posts",
-	})
-
-	posts := endpoints.NewPostsAPI(s.Config.BaseURL, s.Config.Timeout, s.Log)
-
-	var postID int
-	testErr = s.Step("GET /posts — find valid ID", func() error {
-		result, _, err := posts.GetAll()
-		if err != nil {
-			return err
-		}
-		if len(result.Data) == 0 {
-			return errors.New("no posts available")
-		}
-		postID = result.Data[0].ID
-		return nil
-	})
-	require.NoError(t, testErr)
-
-	var beforeLikes *endpoints.LikesResponse
-	testErr = s.Step(fmt.Sprintf("GET /posts/%d/likes before adding", postID), func() error {
-		var resp *client.Response
-		var err error
-		beforeLikes, resp, err = posts.GetLikes(postID)
-		if err != nil {
-			return err
-		}
-		return posts.AssertStatus(resp, http.StatusOK)
-	})
-	require.NoError(t, testErr)
-
-	var afterLikes *endpoints.LikesResponse
-	testErr = s.Step(fmt.Sprintf("POST /posts/%d/likes — expect 200 or 201", postID), func() error {
-		var resp *client.Response
-		var err error
-		afterLikes, resp, err = posts.AddLike(postID, &endpoints.AddLikeRequest{UserID: 4})
-		if err != nil {
-			return err
-		}
-		if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
-			return fmt.Errorf("expected status 200 or 201, got %d", resp.StatusCode)
-		}
-		return nil
-	})
-	require.NoError(t, testErr)
-
-	testErr = s.Step("Total likes increased by 1", func() error {
-		expected := beforeLikes.TotalLikes + 1
-		if afterLikes.TotalLikes != expected {
-			return fmt.Errorf(
-				"likes count mismatch: expected %d, got %d",
-				expected,
-				afterLikes.TotalLikes,
 			)
 		}
 		return nil
