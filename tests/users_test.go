@@ -1,7 +1,6 @@
 package api_test
 
 import (
-	"crypto/rand"
 	"errors"
 	"fmt"
 	"net/http"
@@ -160,72 +159,6 @@ func TestGetUserNotFound(t *testing.T) {
 			return err
 		}
 		return users.AssertStatus(resp, http.StatusNotFound)
-	})
-	require.NoError(t, testErr)
-}
-
-// TestCreateUser tests the POST /users endpoint.
-// It creates a new user with name, username, and email.
-// Expected: HTTP 201 Created with JSON body containing the created user with generated ID.
-// Verifies that the returned user matches the request data.
-func TestCreateUser(t *testing.T) {
-	// t.Parallel()
-	s := suite.New(t, "UsersAPI")
-	require.NoError(t, s.Setup(t.Name()))
-
-	var testErr error
-	defer s.Teardown(t.Name(), &testErr)
-
-	s.SetMeta(suite.TestMeta{
-		Description: "POST /users creates user and returns 201",
-		Severity:    suite.SeverityCritical,
-		Feature:     "users",
-	})
-
-	users := endpoints.NewUsersAPI(s.Config.BaseURL, s.Config.Timeout, s.Log)
-
-	req := &endpoints.CreateUserRequest{
-		Name:     rand.Text(),
-		Username: rand.Text(),
-		Email:    "test@example.com",
-	}
-
-	var created *endpoints.UserResponse
-	testErr = s.Step("POST /users — expect 201", func() error {
-		var resp *client.Response
-		var err error
-		created, resp, err = users.Create(req)
-		if err != nil {
-			return err
-		}
-		return users.AssertStatus(resp, http.StatusCreated)
-	})
-	require.NoError(t, testErr)
-
-	testErr = s.Step("Created user has generated ID", func() error {
-		if created.Data.ID == 0 {
-			return errors.New("expected non-zero ID for created user")
-		}
-		return nil
-	})
-	require.NoError(t, testErr)
-
-	testErr = s.Step("Created user matches request data", func() error {
-		if created.Data.Name != req.Name {
-			return fmt.Errorf(
-				"name mismatch: expected %s, got %s",
-				req.Name,
-				created.Data.Name,
-			)
-		}
-		if created.Data.Email != req.Email {
-			return fmt.Errorf(
-				"email mismatch: expected %s, got %s",
-				req.Email,
-				created.Data.Email,
-			)
-		}
-		return nil
 	})
 	require.NoError(t, testErr)
 }

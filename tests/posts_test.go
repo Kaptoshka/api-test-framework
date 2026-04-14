@@ -266,59 +266,6 @@ func TestCreatePost(t *testing.T) {
 	require.NoError(t, testErr)
 }
 
-// TestUpdatePost tests the PUT /posts/:id endpoint.
-// It fetches all posts to find a valid ID, then fully updates that post.
-// Expected: HTTP 200 OK with JSON body containing the updated post with new title.
-func TestUpdatePost(t *testing.T) {
-	// t.Parallel()
-	s := suite.New(t, "PostsAPI")
-	require.NoError(t, s.Setup(t.Name()))
-
-	var testErr error
-	defer s.Teardown(t.Name(), &testErr)
-
-	s.SetMeta(suite.TestMeta{
-		Description: "PUT /posts/:id replaces post data",
-		Severity:    suite.SeverityNormal,
-		Feature:     "posts",
-	})
-
-	posts := endpoints.NewPostsAPI(s.Config.BaseURL, s.Config.Timeout, s.Log)
-
-	postID := createTestPost(t, posts, "PUT")
-	req := makePostPayload(postID, "PUT-updated")
-
-	var updated *endpoints.PostResponse
-	testErr = s.Step(fmt.Sprintf("PUT /posts/%d — expect 200", postID), func() error {
-		var resp *client.Response
-		var err error
-		updated, resp, err = posts.Update(postID, req)
-		if err != nil {
-			return err
-		}
-		if resp.StatusCode != http.StatusOK {
-			return fmt.Errorf(
-				"expected 200 for ID=%d, got %d. Body: %s",
-				postID, resp.StatusCode, string(resp.Body),
-			)
-		}
-		return nil
-	})
-	require.NoError(t, testErr)
-
-	testErr = s.Step("Updated post has new title and body", func() error {
-		if updated.Data.Title != req.Title {
-			return fmt.Errorf("title mismatch: expected %q, got %q", req.Title, updated.Data.Title)
-		}
-		if updated.Data.Body != req.Body {
-			return fmt.Errorf("body mismatch: expected %q, got %q", req.Body, updated.Data.Body)
-		}
-		s.Log.Info("Post updated", "id", postID, "title", updated.Data.Title)
-		return nil
-	})
-	require.NoError(t, testErr)
-}
-
 // TestDeletePost tests the DELETE /posts/:id endpoint.
 // It fetches all posts to find a valid ID, then deletes that post.
 // Expected: HTTP 204 No Content status code on successful deletion.

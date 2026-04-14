@@ -223,10 +223,27 @@ func TestCreateTodo(t *testing.T) {
 
 	todos := endpoints.NewTodosAPI(s.Config.BaseURL, s.Config.Timeout, s.Log)
 
+	users := endpoints.NewUsersAPI(s.Config.BaseURL, s.Config.Timeout, s.Log)
+
+	var userID int
+	testErr = s.Step("Find userID for creating todo", func() error {
+		result, _, err := users.GetAll()
+		if err != nil {
+			return fmt.Errorf("failed to get users: %v", err)
+		}
+
+		if len(result.Data) == 0 {
+			return errors.New("no users found")
+		}
+
+		userID = result.Data[0].ID
+		return nil
+	})
+
 	req := &endpoints.CreateTodoRequest{
 		Title:     "Buy groceries",
 		Completed: false,
-		UserID:    2,
+		UserID:    userID,
 	}
 
 	var created *endpoints.TodoResponse
