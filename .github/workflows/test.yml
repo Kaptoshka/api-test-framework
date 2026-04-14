@@ -1,21 +1,63 @@
----
 name: Tests
+
 on:
     push:
         branches: [main]
     pull_request:
         branches: [main]
+
+permissions:
+    contents: write
+
 jobs:
     test:
         runs-on: ubuntu-latest
+
         steps:
-            - uses: actions/checkout@v4
-            - uses: actions/setup-go@v5
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Setup Go
+              uses: actions/setup-go@v5
               with:
                   go-version-file: go.mod
+
+            - name: Setup Java (for Allure)
+              uses: actions/setup-java@v4
+              with:
+                  distribution: temurin
+                  java-version: 17
+
+            - name: Install Allure
+              run: |
+                  curl -o allure.tgz -Ls https://github.com/allure-framework/allure2/releases/latest/download/allure-2.27.0.tgz
+                  tar -zxvf allure.tgz
+                  sudo mv allure-*/ /opt/allure
+                  sudo ln -s /opt/allure/bin/allure /usr/bin/allure
+
             - name: Run tests
               env:
                   BASE_URL: ${{ secrets.BASE_URL }}
                   LOG_LEVEL: info
                   TIMEOUT: 30000
-              run: go test ./tests/... -v
+              run: |
+                  go test ./tests/... -v
+
+            - name: Generate Allure report
+              if: always()
+              run: |
+                  allure generate ./artifacts/allure-results -o ./allure-report --clean
+
+            - name: Upload Allure report artifact (backup)
+              if: always()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: allure-report
+                  path: allure-report
+
+            - name: Deploy Allure Report to GitHub Pages
+              if: github.ref == 'refs/heads/main'
+              uses: peaceiris/actions-gh-pages@v4
+              with:
+                  github_token: ${{ secrets.GITHUB_TOKEN }}
+                  publish_dir: ./allure-report
